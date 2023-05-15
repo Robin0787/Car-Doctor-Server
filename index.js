@@ -20,6 +20,7 @@ const client = new MongoClient(uri, {
   },
 });
 
+
 function verifyToken(req, res, next) { 
   const authorization = req.headers.authorization;
   if (!authorization) {
@@ -41,23 +42,22 @@ async function run() {
     await client.connect();
     const serviceCollection = client.db("Car-Doctor").collection("services");
     const bookingCollection = client.db("Car-Doctor").collection("bookings");
+
     app.get("/services", async (req, res) => {
       const cursor = serviceCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
-
     // JSON Web token for user
     app.post("/user-token", (req, res) => {
       const user = req.body;
       const token = jwt.sign(
-        { email: user.email },
+        user,
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "10m" }
+        { expiresIn: "5m" }
       );
       res.send({ token: token });
     });
-
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -69,8 +69,7 @@ async function run() {
     });
     app.get("/bookings", verifyToken, async (req, res) => {
       const decoded = req.decoded;
-      console.log("log after verifying");
-      if(decoded.email !== req.query?.email){
+      if(decoded.user !== req.query?.email){
         return res.status(403).send({error: true, message: "forbidden access"});
       }
       let query = {};
